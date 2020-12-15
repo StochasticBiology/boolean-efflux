@@ -2,7 +2,7 @@
 Self-defined functions for numerical simulation of Boolean network model
 """
 
-"""Import modules to use"""
+# # Import modules to use
 import numpy as np
 import pandas as pd
 import random as rn
@@ -13,17 +13,13 @@ from graphviz import Digraph
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import math
-# # clustering libraries
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html#scipy.cluster.hierarchy.linkage
 from scipy.cluster.hierarchy import linkage
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.dendrogram.html
 from scipy.cluster.hierarchy import dendrogram
-# https://docs.scipy.org/
 from scipy.cluster import hierarchy
 
 
 """
-Preamble work
+Functions for preamble work
 """
 
 
@@ -116,9 +112,11 @@ def node_groups(nodes_unique):
 
 def signal_targets_unique(signal_node_edge):
     """Filter unique signal edge regulatory interactions"""
-    signal_node_edge_targets = signal_node_edge.drop_duplicates(
-        ['target edge start', 'target edge end'])
+    signal_node_edge_unique = signal_node_edge.drop_duplicates(
+        ['target edge start', 'target edge end']).reset_index(drop=True)
     # print(signal_regulation_node_edge)
+
+    signal_node_edge_targets = signal_node_edge_unique.drop(['regulator', 'regulation'], 1)
 
     return signal_node_edge_targets
 
@@ -184,7 +182,9 @@ def node_labels(nodes_grn, nodes_signal, nodes_ghost):
     return nodeOrder_list, df_nodeLabels, signal_labels
 
 
-def summary_file(path_out, motifName, nodes_total, number_grn, nodes_grn, number_ghost, nodes_ghost, number_signal, nodes_signal, totalGlobalStates, nodeOrder_list):
+def summary_file(path_out, motifName, nodes_total, number_grn, nodes_grn, number_ghost,
+                 nodes_ghost, number_signal, nodes_signal, totalGlobalStates, nodeOrder_list, ics,
+                 interaction_matrix, signal_node_edge, df_nodeLabels):
     """
     Summary file of motif
     """
@@ -195,11 +195,14 @@ def summary_file(path_out, motifName, nodes_total, number_grn, nodes_grn, number
 
     # # write info in text file
     summary.write("Motif: % s.\n\nTotal nodes = %s.\n\n" % (motifName, nodes_total))
-    summary.write("Number of original nodes = %s.\nOriginal nodes = %s.\n\nNumber of ghost nodes = %s.\nGhost nodes = %s.\n\n"
+    summary.write("Number of GRN nodes = %s.\nGRN nodes = %s.\n\nNumber of ghost nodes = %s.\nGhost nodes = %s.\n\n"
                   % (number_grn, nodes_grn, number_ghost, nodes_ghost))
-    summary.write('Number of signal nodes = %s.\nSignal nodes = %s.\n\nTotal Global System States = %s.\n\nNode order: %s.' %
+    summary.write('Number of signal nodes = %s.\nSignal nodes = %s.\n\nTotal Global System States = %s.\n\nNode order: %s.\n' %
                   (number_signal, nodes_signal, totalGlobalStates, nodeOrder_list))
-
+    summary.write('Node labels: %s.\n\n' % str(df_nodeLabels['nodeLabel'].tolist()))
+    summary.write('Initial conditions: %s.\n\n' % ics)
+    summary.write('Initial Interaction Matrix: \n%s\n\n' % str(interaction_matrix))
+    summary.write('Signal Interactions: \n%s\n\n' % str(signal_node_edge))
     # # close file
     summary.close()
 
@@ -209,7 +212,7 @@ General Functions
 """
 
 
-def create_dir(rule, signal_start, signal_end, motifName, signal_length, method):
+def create_dir(rule, signal_start, signal_end, motifName, signal_length, method, path_out):
     """
     Function generates directories for simulation outputs to go.
     If directory already exists, function skips the production of the directory.
@@ -233,31 +236,33 @@ def create_dir(rule, signal_start, signal_end, motifName, signal_length, method)
     ----------
     New directories for script outputs.
     """
+    motif_dir = '%s/%s' % (path_out, motifName)
+
     if (signal_start == 0) and (signal_end == 0):
         if rule == 0:
-            output_dir_loc = './%s/blue-%s-signal-0' % (motifName, method)
+            out_dir = '%s/blue-%s-signal-0' % (motif_dir, method)
         elif rule == 1:
-            output_dir_loc = './%s/red-%s-signal-0' % (motifName, method)
+            out_dir = '%s/red-%s-signal-0' % (motif_dir, method)
         else:
             sys.exit("\n\nError: Update rule not known.\n\n")
     else:
         if rule == 0:
-            output_dir_loc = './%s/blue-%s-signal-%d' % (motifName, method, signal_length)
+            out_dir = '%s/blue-%s-signal-%d' % (motif_dir, method, signal_length)
         elif rule == 1:
-            output_dir_loc = './%s/red-%s-signal-%d' % (motifName, method, signal_length)
+            out_dir = '%s/red-%s-signal-%d' % (motif_dir, method, signal_length)
         else:
             sys.exit("\n\nError: Update rule not known.\n\n")
 
-    create_directories = [motifName, output_dir_loc]
+    create_directories = [motif_dir, out_dir]
     for dirName in create_directories:
         # print(dirName)
         if not os.path.exists(dirName):
             os.makedirs(dirName)
 
-    return output_dir_loc
+    return out_dir
 
 
-def create_hm_dir(signal_state, rule, motifName, method):
+def create_hm_dir(signal_state, rule, motifName, method, path_out):
     """
     Function generates directories for simulation outputs to go.
     If directory already exists, function skips the production of the directory.
@@ -278,20 +283,22 @@ def create_hm_dir(signal_state, rule, motifName, method):
     New directories for simulation outputs.
     Exit with error message and stop simulation if entered update rule is unknown.
     """
+    motif_dir = '%s/%s' % (path_out, motifName)
+
     if rule == 0:
-        output_dir_loc = './%s/blue-%s-hms-signal-%s' % (motifName, method, signal_state)
+        out_dir = '%s/blue-%s-hms-signal-%s' % (motif_dir, method, signal_state)
     elif rule == 1:
-        output_dir_loc = './%s/red-%s-hms-signal-%s' % (motifName, method, signal_state)
+        out_dir = '%s/red-%s-hms-signal-%s' % (motif_dir, method, signal_state)
     else:
         sys.exit("Error: Update rule not known. Enter 0 or 1.")
 
-    create_directories = [motifName, output_dir_loc]
+    create_directories = [motifName, out_dir]
     for dirName in create_directories:
         # print(dirName)
         if not os.path.exists(dirName):
             os.makedirs(dirName)
 
-    return output_dir_loc
+    return out_dir
 
 
 def signal_range(signal_start, signal_end):  # stress signal range
@@ -429,7 +436,7 @@ def import_ICs(ics_data_dir, motifName, nodes_grn):
     # # Compile the set of ICs
     totalGlobalStates = 2 ** len(nodes_grn)
     if ics_data.empty:
-        ics = [rk.get_bin(i, len(nodes_grn)) for i in range(totalGlobalStates)]
+        ics = [get_bin(i, len(nodes_grn)) for i in range(totalGlobalStates)]
     else:
         df_string = ics_data.to_string(header=False, index=False,
                                        index_names=False).split('\n')
@@ -477,37 +484,36 @@ def signal_node_edge_regulation_matrix(interaction_matrix, node_edge_data, signa
     if len(signal_node_edge_unique.index) != 0:
         sub_interactionMatrix = interaction_matrix.copy()
 
-        col_headers = signal_node_edge_unique.columns.values.tolist()
+        col_headers = node_edge_data.columns.values.tolist()
         index_regulation = col_headers.index('regulation')
-        # print([col_headers, index_regulation])
 
         if len(node_edge_data.index) == len(signal_node_edge_unique.index):
-            for row in range(signal_node_edge_unique.shape[0]):
-                node_from_int = nodeOrder_list.index(signal_node_edge_unique.iloc[row, 1])
-                node_to_int = nodeOrder_list.index(signal_node_edge_unique.iloc[row, 2])
+            for row in range(node_edge_data.shape[0]):
+                node_from_int = nodeOrder_list.index(node_edge_data.iloc[row, 1])
+                node_to_int = nodeOrder_list.index(node_edge_data.iloc[row, 2])
                 sub_interactionMatrix[node_to_int][node_from_int] = 0
 
         else:
             for item in range(signal_node_edge_unique.shape[0]):
-                # print('Node from = %s. Node to = %s' %
-                      # (signal_node_edge_unique.iloc[item, 0], signal_node_edge_unique.iloc[item, 1])
 
-                node_from_int = nodeOrder_list.index(signal_node_edge_unique.iloc[item, 1])
-                node_to_int = nodeOrder_list.index(signal_node_edge_unique.iloc[item, 2])
-                node_from = signal_node_edge_unique.iloc[item, 1]
-                node_to = signal_node_edge_unique.iloc[item, 2]
+                node_from = signal_node_edge_unique.iloc[item, 0]
+                node_to = signal_node_edge_unique.iloc[item, 1]
+                node_from_int = nodeOrder_list.index(node_from)
+                node_to_int = nodeOrder_list.index(node_to)
 
                 sub_df = node_edge_data.loc[(node_edge_data['target edge start'] == node_from)
                                             & (node_edge_data['target edge end'] == node_to), :]
-                # print(sub_df)
+                print(sub_df)
 
                 booleanSum = np.array([sub_df.iloc[df_row, index_regulation]*int(globalState[nodeOrder_list.index(sub_df.iloc[df_row, 0])])
                                        for df_row in range(sub_df.shape[0])]).sum()
                 # print('Sum of inputs: %.3f' % booleanSum)
 
-                """Modify matrix element value if condition met"""
-                element_value = sub_interactionMatrix[node_to_int][node_from_int]
-                element_value = 0 if np.sign(booleanSum) < 0 else element_value
+                # # Modify matrix element value if condition met
+                if np.sign(booleanSum) < 0:
+                    sub_interactionMatrix[node_to_int][node_from_int] == 0
+                else:
+                    sub_interactionMatrix[node_to_int][node_from_int] == sub_interactionMatrix[node_to_int][node_from_int]
     else:
         sub_interactionMatrix = interaction_matrix.copy()
 
@@ -848,9 +854,9 @@ def dendrogram_and_heatmap(figure, data, numberNetworkNodes, number_sims, cbarla
     axm.set_ylim(axesLabelLength-0.5, -0.5)  # ylim(bottom,top)
 
     # # axis labels & positioning
-    axm.set_xlabel('Global state, $t_{n+1}$', labelpad=3, size=7)
+    axm.set_xlabel(r'Global state, $t = \tau+1$', labelpad=3, size=7)
     axm.xaxis.set_label_position('top')
-    axm.set_ylabel('Global state, $t_{n}$', labelpad=2, size=7)
+    axm.set_ylabel(r'Global state, $t = \tau$', labelpad=2, size=7)
 
     """
     Plot separate manual colour bar
@@ -897,14 +903,13 @@ def time_evolution_subplot(numberNetworkNodes):
     return subplot_rows, subplot_cols
 
 
-# , df_binary_count):
 def time_evolution_fig(networkGlobalState_0, uniqueNodes, numberNodes, fig_timeSteps, df, df_error):
     """
     Alternative visualization modules:
     Visualization with Seaborn: https://jakevdp.github.io/PythonDataScienceHandbook/04.14-visualization-with-seaborn.html
     """
-    fig, axs = plt.subplots(2, 2, figsize=(5, 3), sharex='col', sharey='row',
-                            gridspec_kw={'hspace': 0.17, 'wspace': 0.05})
+    fig, axs = plt.subplots(2, 2, figsize=(5, 3.5), sharex='col', sharey='row',
+                            gridspec_kw={'hspace': 0.19, 'wspace': 0.05})
     # sharex='col',sharey = 'row', gridspec_kw = {'hspace': 0.2, 'wspace': 0.2}
     # constrained_layout=True
     ax = axs.ravel()
@@ -921,37 +926,38 @@ def time_evolution_fig(networkGlobalState_0, uniqueNodes, numberNodes, fig_timeS
     y_label_subplots = [(n*subplot_cols) for n in range(0, subplot_rows)]
 
     for i in range(0, numberNodes):
-        ax[i].set_title('%s' % fig_subplotTitles[i], fontsize=8, style='italic', pad=3)
+        ax[i].set_title('%s' % fig_subplotTitles[i], fontsize=11, style='italic', pad=3)
 
         ax[i].plot(df.iloc[:, 0], df.iloc[:, i+2], '-', color='#0023D1',
-                   linewidth=1.25, zorder=0)  # plt.step()
+                   linewidth=1.5, zorder=0)  # ax[i].step / ax[i].plot
         ax[i].fill_between(df.iloc[:, 0], df.iloc[:, i+2] - df_error.iloc[:, i+2],
                            df.iloc[:, i+2] + df_error.iloc[:, i+2],
                            color='#409AFF', alpha=0.25)
 
-        ax[i].set_xlim(-0.5, fig_timeSteps-0.5)
+        ax[i].set_xlim(-0.75, fig_timeSteps-0.25)
         ax[i].set_ylim(-0.05, 1.05)
 
         xaxis_tick_num = ((fig_timeSteps-1)/5)+1
         ax[i].set_xticks(np.linspace(0, fig_timeSteps-1, int(xaxis_tick_num)))
         ax[i].set_yticks(np.linspace(0, 1, 5))  # , minor=True)
-        ax[i].tick_params(axis="both", labelsize=8, length=2, pad=1)
+        ax[i].tick_params(axis="both", labelsize=10, length=2, pad=1)
 
         if i in y_label_subplots:
-            ax[i].set_ylabel("Mean Activation", size=8, labelpad=2)
+            ax[i].set_ylabel("Mean Activation", size=10, labelpad=2)
 
         if i in x_label_subplots:
-            ax[i].set_xlabel("Time-step", size=8, labelpad=2)
+            ax[i].set_xlabel("Time-step", size=10, labelpad=2)
 
         ax[i].grid(True, linestyle='--', linewidth='0.1')
 
+        marker_scaling = 1.6
         for j in range(df.shape[0]):
             # # markers for mean activation
             markersize_0 = (1-df.iloc[j, i+2])
-            ax[i].plot(df.iloc[j, 0], 0, 'D', color='m', markersize=2*markersize_0, zorder=1,
+            ax[i].plot(df.iloc[j, 0], 0, 'D', color='m', markersize=marker_scaling*markersize_0, zorder=1,
                        fillstyle='full')  # , markeredgewidth=2,  markerfacecolor='m')
             markersize_1 = df.iloc[j, i+2]
-            ax[i].plot(df.iloc[j, 0], 1, 'Dm', markersize=2*markersize_1, zorder=1,
+            ax[i].plot(df.iloc[j, 0], 1, 'Dm', markersize=marker_scaling*markersize_1, zorder=1,
                        fillstyle='full')  # ,markeredgewidth=2, fillstyle='full', markerfacecolor='m')
 
     return fig
