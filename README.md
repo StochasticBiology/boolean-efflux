@@ -68,14 +68,15 @@ Press Enter. A directory named 'boolean-efflux' will now be found in the specifi
 In the 'boolean-efflux' directory, the 'input-data' sub-directory can be found which homes the information about the regulatory network(s) that are considered. The files used for E. coli and Salmonella in the paper are included in this repository.
 
 For new regulatory networks, create initial condition and regulatory architecture comma-separted values files.
-   - Initial condition files: If left empty, the script runs through all possible global states (2^M, with M = number of elements in regulatory architecture).
+   - Initial condition file: If left empty, the script runs through all possible global states (2^M, with M = number of elements in regulatory architecture).
    - Regulatory architecture files: Split into two indivudual files, a node-node and node-edge regulation file respectively.
+See example files in 'input-data' directory for layout.
 
 For simulation, run:
 ```sh
 python <path-to-file>/<filename.py>
 ```
 
-Enter requested inputs. Script will execute
+Enter requested inputs. Script will execute and outputs can be found within 'boolean-efflux' directory.
 
 If there are any questions regarding the included files, email ryan.mathbio@gmail.com.
