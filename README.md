@@ -58,11 +58,8 @@ The below steps describe the steps to run the model code with chosen regulatory 
 
 Create a clone of Github files locally on your computer through method (i) or (ii):
 - (i) Download directly using the 'Code' --> 'Download' buttons.
-- (ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. It will look like this:
-```sh
-cd <user-specified-location>
-git clone https://github.com/StochasticBiology/boolean-efflux.git
-```
+- (ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. It will look like this: ```sh cd <user-specified-location> git clone https://github.com/StochasticBiology/boolean-efflux.git ```
+
 Press Enter. A directory named 'boolean-efflux' will now be found in the specified location.
 
 In the 'boolean-efflux' directory, the 'input-data' sub-directory can be found which homes the information about the regulatory network(s) that are considered. The files used for E. coli and Salmonella in the paper are included in this repository.
