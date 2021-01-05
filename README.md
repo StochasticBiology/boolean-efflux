@@ -58,13 +58,11 @@ The below steps describe the steps to run the model code with chosen regulatory 
 
 Create a clone of Github files locally on your computer through method (i) or (ii):
 - (i) Download directly using the 'Code' --> 'Download' buttons.
-- (ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. It will look like this:<br/>
+- (ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. Press Enter. A directory named 'boolean-efflux' will now be found in the specified location. It will look like this:<br/>
 ```sh 
 cd <user-specified-location> 
 git clone https://github.com/StochasticBiology/boolean-efflux.git 
-``` 
-<br/>
-Press Enter. A directory named 'boolean-efflux' will now be found in the specified location.
+```
 
 In the 'boolean-efflux' directory, the 'input-data' sub-directory can be found which homes the information about the regulatory network(s) that are considered. The files used for E. coli and Salmonella in the paper are included in this repository.
 
@@ -78,6 +76,12 @@ For simulation, run:
 python <path-to-file>/<filename.py>
 ```
 
-Enter requested inputs. Script will execute and outputs can be found within 'boolean-efflux' directory.
+File will request inputs for the regulatory network name and information on the stress signal. It will look like this for simulating the timeseries evolution of E. coli with a stress implemented from timestep 10 to 12:
+```sh
+Enter regulatory network name:ecoli
+Enter signal start and end values (separate by a single space e.g. no signal would be entered as 0 0):10 12
+```
+
+Script will execute and outputs can be found within 'boolean-efflux' directory.
 
 If there are any questions regarding the included files, email ryan.mathbio@gmail.com.
