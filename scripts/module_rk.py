@@ -232,7 +232,7 @@ def create_dir(signal_start, signal_end, motifName, signal_length, path_out):
     ----------
     New directories for script outputs.
     """
-    motif_dir = '%s/%s' % (path_out, motifName)
+    motif_dir = '%s/outputs/%s' % (path_out, motifName)
 
     if (signal_start == 0) and (signal_end == 0):
         out_dir = '%s/timeseries-signal-0' % (motif_dir)
@@ -266,7 +266,7 @@ def create_hm_dir(signal_state, motifName, path_out):
     ----------
     New directories for simulation outputs.
     """
-    motif_dir = '%s/%s' % (path_out, motifName)
+    motif_dir = '%s/outputs/%s' % (path_out, motifName)
     out_dir = '%s/hms-signal-%s' % (motif_dir, signal_state)
 
     create_directories = [motif_dir, out_dir]

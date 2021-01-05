@@ -21,7 +21,8 @@ signal_state = input("Enter signal state (active or inactive):")
 # Energy availability levels to scan through - can use set levels or a linspace.
 energy_partition = np.array([0.1, 0.5, 1])
 # Number of simulations per energy level
-number_sims = 2*10**6
+number_sim = input("Enter total simulations:")  # 2*10**6
+number_sims = int(number_sim)
 
 # # Path to directory locations (input & output)
 # Path to python file
