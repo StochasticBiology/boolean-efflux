@@ -64,22 +64,22 @@ cd <user-specified-location>
 git clone https://github.com/StochasticBiology/boolean-efflux.git 
 ```
 
-In the 'boolean-efflux' directory, the 'input-data' sub-directory can be found which homes the information about the regulatory network(s) that are considered. The files used for *E. coli* and *Salmonella* in the paper are included in this repository.
+In the 'boolean-efflux' directory, the 'input-data' sub-directory homes the information about the regulatory network(s) that are considered. The files used for *E. coli* and *Salmonella* in the manuscript are included in this repository.
 
-For new regulatory networks, create initial condition and regulatory architecture comma-separted values files.
+For new regulatory networks, create initial condition and regulatory architecture comma-separted values files, using the example files in the 'input-data' directory for layout help.
    - Initial condition file: If left empty, the script runs through all possible global states (2^M, with M = number of elements in regulatory architecture).
    - Regulatory architecture files: Split into two indivudual files, a node-node and node-edge regulation file respectively.
-See example files in 'input-data' directory for layout.
 
 For simulation, run:
 ```sh
 python <path-to-file>/<filename.py>
 ```
 
-File will request inputs for the regulatory network name and information on the stress signal. It will look like this for simulating the timeseries evolution of *E. coli* with a stress implemented from timestep 10 to 12:
+File will request inputs for the regulatory network name and information on the stress signal. It will look like this for simulating the timeseries evolution of *E. coli* with a stress implemented from timestep 10 to 12 for 2000 runs:
 ```sh
 Enter regulatory network name:ecoli
 Enter signal start and end values (separate by a single space e.g. no signal would be entered as 0 0):10 12
+Enter total simulations:2000
 ```
 
 Script will execute and outputs can be found within 'boolean-efflux' directory.
