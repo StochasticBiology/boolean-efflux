@@ -1,4 +1,4 @@
-Dynamic Boolean Modelling of Regulatory Networks.
+###### Dynamic Boolean Modelling of Regulatory Networks.
 
 Python code for the analysis of the dynamics of regulatory networks for bacterial efflux pump acrAB. Modules 'matplotlib' & 'graphviz' are used for visualisation with python.
 
@@ -64,7 +64,7 @@ cd <user-specified-location>
 git clone https://github.com/StochasticBiology/boolean-efflux.git 
 ```
 
-In the 'boolean-efflux' directory, the 'input-data' sub-directory can be found which homes the information about the regulatory network(s) that are considered. The files used for E. coli and Salmonella in the paper are included in this repository.
+In the 'boolean-efflux' directory, the 'input-data' sub-directory can be found which homes the information about the regulatory network(s) that are considered. The files used for *E. coli* and *Salmonella* in the paper are included in this repository.
 
 For new regulatory networks, create initial condition and regulatory architecture comma-separted values files.
    - Initial condition file: If left empty, the script runs through all possible global states (2^M, with M = number of elements in regulatory architecture).
@@ -76,7 +76,7 @@ For simulation, run:
 python <path-to-file>/<filename.py>
 ```
 
-File will request inputs for the regulatory network name and information on the stress signal. It will look like this for simulating the timeseries evolution of E. coli with a stress implemented from timestep 10 to 12:
+File will request inputs for the regulatory network name and information on the stress signal. It will look like this for simulating the timeseries evolution of *E. coli* with a stress implemented from timestep 10 to 12:
 ```sh
 Enter regulatory network name:ecoli
 Enter signal start and end values (separate by a single space e.g. no signal would be entered as 0 0):10 12
