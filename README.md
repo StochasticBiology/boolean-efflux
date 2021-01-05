@@ -56,6 +56,14 @@ The figures in the corresponding manuscript are produced by:
 
 The below steps describe the steps to run the model code with chosen regulatory architecture, update method, update rule and energy levels.
 
+Create a clone of Github files locally on your computer through method (i) or (ii):
+(i) Download directly using the 'Code' --> 'Download' buttons.
+(ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the URL you copied earlier. It will look like this, with your GitHub username instead of YOUR-USERNAME:
+```sh
+$ git clone https://github.com/YOUR-USERNAME/Spoon-Knife
+```
+Press Enter (see https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo for more information).
+
 In the directory where the two python scripts are located:
 ```sh
 mkdir input-data
