@@ -1,0 +1,12 @@
+start node,end node,regulation
+marR,marR,-1
+marR,marA,-1
+marA,marR,0.45
+marA,marA,0.5
+marA,acrAB,0.95
+acrR,acrAB,-1
+acrR,acrR,-1
+acrAB,signal,-1
+ghost1,marR,0.45
+ghost2,marA,0.45
+ghost3,acrR,0.95

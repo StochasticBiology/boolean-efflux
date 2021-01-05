@@ -1,0 +1,5 @@
+regulator,target edge start,target edge end,regulation
+signal,ramR,ramR,-1
+signal,ramR,ramA,-1
+signal,acrR,acrAB,-1
+signal,acrR,acrR,-1
