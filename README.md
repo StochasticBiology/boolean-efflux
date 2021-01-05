@@ -60,17 +60,14 @@ Create a clone of Github files locally on your computer through method (i) or (i
 (i) Download directly using the 'Code' --> 'Download' buttons.
 (ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. It will look like this:
 ```sh
-cd {{location for files on your PC}}
+cd <user-specified-location>
 git clone https://github.com/StochasticBiology/boolean-efflux.git
 ```
 Press Enter. A directory named 'boolean-efflux' will now be found in the specified location.
 
-In the directory where the two python scripts are located:
-```sh
-mkdir input-data
-```
+In the 'boolean-efflux' directory, the 'input-data' sub-directory can be found which homes the information about the regulatory network(s) that are considered. The files used for E. coli and Salmonella in the paper are included in this repository.
 
-Create initial condition and regulatory architecture comma-separted values files.
+For new regulatory networks, create initial condition and regulatory architecture comma-separted values files.
    - Initial condition files: If left empty, the script runs through all possible global states (2^M, with M = number of elements in regulatory architecture).
    - Regulatory architecture files: Split into two indivudual files, a node-node and node-edge regulation file respectively.
 
