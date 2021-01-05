@@ -57,8 +57,8 @@ The figures in the corresponding manuscript are produced by:
 The below steps describe the steps to run the model code with chosen regulatory architecture, update method, update rule and energy levels.
 
 Create a clone of Github files locally on your computer through method (i) or (ii):
-(i) Download directly using the 'Code' --> 'Download' buttons.
-(ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. It will look like this:
+- (i) Download directly using the 'Code' --> 'Download' buttons.
+- (ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. It will look like this:
 ```sh
 cd <user-specified-location>
 git clone https://github.com/StochasticBiology/boolean-efflux.git
