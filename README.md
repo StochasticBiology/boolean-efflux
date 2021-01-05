@@ -58,11 +58,12 @@ The below steps describe the steps to run the model code with chosen regulatory 
 
 Create a clone of Github files locally on your computer through method (i) or (ii):
 (i) Download directly using the 'Code' --> 'Download' buttons.
-(ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the URL you copied earlier. It will look like this, with your GitHub username instead of YOUR-USERNAME:
+(ii) Open Terminal (on Mac). Change the current working directory to the location where you want the cloned directory. Type git clone, and then paste the HTTPS clone URL found from clicking the 'Code' button. It will look like this:
 ```sh
-$ git clone https://github.com/YOUR-USERNAME/Spoon-Knife
+cd {{location for files on your PC}}
+git clone https://github.com/StochasticBiology/boolean-efflux.git
 ```
-Press Enter (see https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo for more information).
+Press Enter. A directory named 'boolean-efflux' will now be found in the specified location.
 
 In the directory where the two python scripts are located:
 ```sh
