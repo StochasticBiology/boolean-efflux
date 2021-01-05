@@ -23,7 +23,7 @@ Before running, ensure you have access to:
     - module_rk (available on Github repository)
 
 
-## Simulation of regulatory network dynamics
+## Github files
 
 The analysis proceeds through two files (1) & (2), requiring module (3) for execution:
 1) heatmaps.py
@@ -52,7 +52,9 @@ The figures in the corresponding manuscript are produced by:
   - Fig S5 -- timeseries.py
   - Fig S6 -- heatmaps.py
 
-To run the model code with chosen regulatory architecture, update method, update rule and energy levels, use:
+## Simulation of regulatory network dynamics
+
+The below steps describe the steps to run the model code with chosen regulatory architecture, update method, update rule and energy levels.
 
 In the directory where the two python scripts are located:
 ```sh
