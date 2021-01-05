@@ -1,4 +1,4 @@
-###### Dynamic Boolean Modelling of Regulatory Networks.
+# Dynamic Boolean Modelling of Regulatory Networks.
 
 Python code for the analysis of the dynamics of regulatory networks for bacterial efflux pump acrAB. Modules 'matplotlib' & 'graphviz' are used for visualisation with python.
 
