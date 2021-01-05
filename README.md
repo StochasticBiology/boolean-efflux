@@ -41,8 +41,8 @@ The analysis proceeds through two files (1) & (2), requiring module (3) for exec
 
 
 The figures in the corresponding manuscript are produced by:
-Fig 1 -- (schematic plot)
-Fig 2 -- timeseries.py
+Fig 1 -- (schematic plot) \\
+Fig 2 -- timeseries.py \\
 Fig 3 -- timeseries.py
 Fig 4 -- heatmaps.py
 Fig S1 -- (schematic plot)
