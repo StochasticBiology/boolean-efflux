@@ -212,15 +212,13 @@ General Functions
 """
 
 
-def create_dir(rule, signal_start, signal_end, motifName, signal_length, method, path_out):
+def create_dir(signal_start, signal_end, motifName, signal_length, path_out):
     """
     Function generates directories for simulation outputs to go.
     If directory already exists, function skips the production of the directory.
 
     Parameters
     ----------
-    rule
-        choice of update rule
     signal_start
         start time-step for signal/stressor
     signal_end
@@ -229,8 +227,6 @@ def create_dir(rule, signal_start, signal_end, motifName, signal_length, method,
         network motif being considered
     signal_length
         total length of signal introduction
-    method
-        synchronous or asynchronous updating
 
     Return
     ----------
@@ -239,19 +235,9 @@ def create_dir(rule, signal_start, signal_end, motifName, signal_length, method,
     motif_dir = '%s/%s' % (path_out, motifName)
 
     if (signal_start == 0) and (signal_end == 0):
-        if rule == 0:
-            out_dir = '%s/blue-%s-signal-0' % (motif_dir, method)
-        elif rule == 1:
-            out_dir = '%s/red-%s-signal-0' % (motif_dir, method)
-        else:
-            sys.exit("\n\nError: Update rule not known.\n\n")
+        out_dir = '%s/timeseries-signal-0' % (motif_dir)
     else:
-        if rule == 0:
-            out_dir = '%s/blue-%s-signal-%d' % (motif_dir, method, signal_length)
-        elif rule == 1:
-            out_dir = '%s/red-%s-signal-%d' % (motif_dir, method, signal_length)
-        else:
-            sys.exit("\n\nError: Update rule not known.\n\n")
+        out_dir = '%s/timeseries-signal-%d' % (motif_dir, signal_length)
 
     create_directories = [motif_dir, out_dir]
     for dirName in create_directories:
@@ -262,7 +248,7 @@ def create_dir(rule, signal_start, signal_end, motifName, signal_length, method,
     return out_dir
 
 
-def create_hm_dir(signal_state, rule, motifName, method, path_out):
+def create_hm_dir(signal_state, motifName, path_out):
     """
     Function generates directories for simulation outputs to go.
     If directory already exists, function skips the production of the directory.
@@ -271,30 +257,20 @@ def create_hm_dir(signal_state, rule, motifName, method, path_out):
     ----------
     signal_state
         active/inactive stress
-    rule
-        node updating rule
     motifName
         network motif being considered
-    method
-        sync/async updating
+    path_out
+        path of where new directories are to be created
 
     Return
     ----------
     New directories for simulation outputs.
-    Exit with error message and stop simulation if entered update rule is unknown.
     """
     motif_dir = '%s/%s' % (path_out, motifName)
+    out_dir = '%s/hms-signal-%s' % (motif_dir, signal_state)
 
-    if rule == 0:
-        out_dir = '%s/blue-%s-hms-signal-%s' % (motif_dir, method, signal_state)
-    elif rule == 1:
-        out_dir = '%s/red-%s-hms-signal-%s' % (motif_dir, method, signal_state)
-    else:
-        sys.exit("Error: Update rule not known. Enter 0 or 1.")
-
-    create_directories = [motifName, out_dir]
+    create_directories = [motif_dir, out_dir]
     for dirName in create_directories:
-        # print(dirName)
         if not os.path.exists(dirName):
             os.makedirs(dirName)
 
@@ -491,7 +467,10 @@ def signal_node_edge_regulation_matrix(interaction_matrix, node_edge_data, signa
             for row in range(node_edge_data.shape[0]):
                 node_from_int = nodeOrder_list.index(node_edge_data.iloc[row, 1])
                 node_to_int = nodeOrder_list.index(node_edge_data.iloc[row, 2])
-                sub_interactionMatrix[node_to_int][node_from_int] = 0
+                if node_edge_data.iloc[row, 3] < 0:
+                    sub_interactionMatrix[node_to_int][node_from_int] = 0
+                else:
+                    sub_interactionMatrix[node_to_int][node_from_int] == sub_interactionMatrix[node_to_int][node_from_int]
 
         else:
             for item in range(signal_node_edge_unique.shape[0]):
@@ -503,7 +482,7 @@ def signal_node_edge_regulation_matrix(interaction_matrix, node_edge_data, signa
 
                 sub_df = node_edge_data.loc[(node_edge_data['target edge start'] == node_from)
                                             & (node_edge_data['target edge end'] == node_to), :]
-                print(sub_df)
+                # print(sub_df)
 
                 booleanSum = np.array([sub_df.iloc[df_row, index_regulation]*int(globalState[nodeOrder_list.index(sub_df.iloc[df_row, 0])])
                                        for df_row in range(sub_df.shape[0])]).sum()
@@ -520,66 +499,32 @@ def signal_node_edge_regulation_matrix(interaction_matrix, node_edge_data, signa
     return sub_interactionMatrix
 
 
-def update_state(state_0, method, number_grn, number_signal, matrix, total_nodes, rule,  N):
+def update_state(state_0, number_grn, number_signal, matrix, total_nodes, N):
     # # convert to list
     state_0_list = list(state_0)
-    # print('Update Method: %s' % method)
-    if method == 'sync':
-        for i in range(N):
-            booleanSum = np.array([matrix[i][j]*int(state_0[j]) for j in range(total_nodes)]).sum()
+    for randomNode in range(0, N):
+        # print("Full state time = t: %s" % completeStartStateBinary)
+        random_node = rn.randint(0, (number_grn + number_signal-1))
+        # print("Node to be updated: %s" % random_node)
 
-            if rule == 0:
-                # # node remains on if a positive sum of inputs
-                if (booleanSum > 0):
-                    state_0_list[i] = "1"
-                # # entitiy remains in same state if overall input is zero
-                elif (booleanSum == 0):
-                    state_0_list[i] = int(state_0[i])
-                # # if the sum doesn't satisfy any criteria above then the entity is turned off
-                else:
-                    state_0_list[i] = "0"
-            else:
-                # # node remains on if a positive sum of inputs and is turned off otherwise
-                state_0_list[i] == "1" if (booleanSum > 0) else state_0_list[i] == "0"
+        # # Calculate Boolean function value
+        booleanSum = np.array([matrix[random_node][j]*int(state_0[j])
+                               for j in range(total_nodes)]).sum()  # calculates sum for node update
+        # print("Boolean sum: %s" % booleanSum)
 
-        extendedState_1 = ''.join(str(e) for e in state_0_list)
-        # print('Next global state: ' + str(extendedState_1))
-        state_1 = extendedState_1[:number_grn]
-
-    elif method == 'async':
-        for randomNode in range(0, N):
-            # print("Full state time = t: %s" % completeStartStateBinary)
-            random_node = rn.randint(0, (number_grn + number_signal-1))
-            # print("Node to be updated: %s" % random_node)
-
-            """Calculate Boolean function value"""
-            booleanSum = np.array([matrix[random_node][j]*int(state_0[j])
-                                   for j in range(total_nodes)]).sum()  # calculates sum for node update
-            # print("Boolean sum: %s" % booleanSum)
-
-            if rule == 0:
-                # # node remains on if a positive sum of inputs
-                if (booleanSum > 0):
-                    state_0_list[random_node] = "1"
-                # # entitiy remains in same state if overall input is zero
-                elif (booleanSum == 0):
-                    state_0_list[random_node] = state_0_list[random_node]
-                # # if the sum doesn't satisfy any criteria above then the entity is turned off
-                else:
-                    state_0_list[random_node] = "0"
-            else:
-                # # node remains on if a positive sum of inputs
-                if (booleanSum > 0):
-                    state_0_list[random_node] = "1"
-                # # if the sum doesn't satisfy any criteria above then the entity is turned off
-                else:
-                    state_0_list[random_node] = "0"
+        # # Threshold update function
+        # node remains on if a positive sum of inputs
+        if (booleanSum > 0):
+            state_0_list[random_node] = "1"
+        # entitiy remains in same state if overall input is zero
+        elif (booleanSum == 0):
+            state_0_list[random_node] = state_0_list[random_node]
+        # if the sum doesn't satisfy any criteria above then the entity is turned off
+        else:
+            state_0_list[random_node] = "0"
 
         extendedState_1 = "".join(state_0_list)
         state_1 = extendedState_1[:number_grn]
-
-    else:
-        sys.exit("Error: Update method not known.")
 
     return state_1, extendedState_1
 
