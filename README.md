@@ -62,6 +62,7 @@ Create a clone of Github files locally on your computer through method (i) or (i
 ```sh 
 cd <user-specified-location> 
 git clone https://github.com/StochasticBiology/boolean-efflux.git 
+Cloning into 'boolean-efflux'...
 ```
 
 In the 'boolean-efflux' directory, the 'input-data' sub-directory homes the information about the regulatory network(s) that are considered. The files used for *E. coli* and *Salmonella* in the manuscript are included in this repository.
