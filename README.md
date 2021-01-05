@@ -41,16 +41,16 @@ The analysis proceeds through two files (1) & (2), requiring module (3) for exec
 
 
 The figures in the corresponding manuscript are produced by:
-Fig 1 -- (schematic plot) \\
-Fig 2 -- timeseries.py \\
-Fig 3 -- timeseries.py
-Fig 4 -- heatmaps.py
-Fig S1 -- (schematic plot)
-Fig S2 -- timeseries.py
-Fig S3 -- timeseries.py
-Fig S4 -- timeseries.py
-Fig S5 -- timeseries.py
-Fig S6 -- heatmaps.py
+  - Fig 1 -- (schematic plot)
+  - Fig 2 -- timeseries.py 
+  - Fig 3 -- timeseries.py
+  - Fig 4 -- heatmaps.py
+  - Fig S1 -- (schematic plot)
+  - Fig S2 -- timeseries.py
+  - Fig S3 -- timeseries.py
+  - Fig S4 -- timeseries.py
+  - Fig S5 -- timeseries.py
+  - Fig S6 -- heatmaps.py
 
 To run the model code with chosen regulatory architecture, update method, update rule and energy levels, use:
 
