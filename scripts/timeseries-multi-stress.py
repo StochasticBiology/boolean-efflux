@@ -9,17 +9,16 @@ import numpy as np
 import pandas as pd
 import csv
 import os
+import sys
 import datetime as dt
 import module_rk as rk
 import matplotlib.pyplot as plt
 import argparse
 
+print('Preamble')
 # # Model Inputs
 parser = argparse.ArgumentParser()
 parser.add_argument("motif", type=str)  # Regulatory motifs to loop through
-parser.add_argument("signal_status", type=str)
-parser.add_argument("signal_0", type=int)
-parser.add_argument("signal_length", type=int)
 parser.add_argument("length_index", type=int)
 args, unknown = parser.parse_known_args()
 print(args)
@@ -31,18 +30,29 @@ energy_levels = np.array([0.1, 0.5, 1])
 # Number of simulations per energy level
 number_sims = 2*10**args.length_index
 # set number time-steps per simulation
-total_time = 40
+total_time = 70
 # signal features
-if args.signal_status == "True":
-    signal = True
-if args.signal_status == "False":
-    signal = False
-signal_range = rk.signal_range(signal, args.signal_0, args.signal_length)
+signal = True
+signal_0 = 15
+signalLength = 10
+signal_range1 = rk.signal_range(signal, int(signal_0), int(signalLength))
+signal_range2 = rk.signal_range(signal, int(40), int(signalLength))
+signal_range3 = rk.signal_range(signal, int(52), int(signalLength))
+signal_range = np.concatenate([signal_range1, signal_range2, signal_range3])
 
 # input and output locations
 pathIn, pathOut = rk.pathOut(__file__)
 # create directory for script outputs
-dir_out = rk.create_dir(signal, args.signal_0, signal_range, args.motif, pathOut)
+motif_dir = '%s/outputs/%s' % (pathOut, args.motif)
+if signal == False:
+    sys.exit("\n\nError: Signal state set as 'false'.")
+else:
+    dir_out = '%s/timeseries-multistress' % (motif_dir)
+create_directories = [motif_dir, dir_out]
+for dirName in create_directories:
+    # print(dirName)
+    if not os.path.exists(dirName):
+        os.makedirs(dirName)
 
 # signal regulation & unique nodes
 signal_node_edge, nodes_unique = rk.unique_nodes(pathIn, args.motif)
@@ -91,7 +101,7 @@ for energy in energy_levels:
         if energy_sim % 50000 == 0:
             # # Similation progress file
             progressFile = open('%s/simulation-progress.txt' % (pathOut), 'a')
-            line = '%s: %s, signal length %.0f, energy level %.2f, energy simulation %s' \
+            line = '%s [multi-stress]: %s, signal length %.0f, energy level %.2f, energy simulation %s' \
                 % (dt.datetime.now().strftime('%H:%M:%S'), args.motif, len(signal_range),
                    energy, energy_sim)
             progressFile.write("%s\n" % line)
@@ -120,7 +130,8 @@ for energy in energy_levels:
                     index_number += 1
 
                 # # Modify signal node state if in pulse range
-                globalState_extended = rk.node_state_change(globalState_extended, len(nodes_grn), '1') \
+                globalState_extended = \
+                    rk.node_state_change(globalState_extended, len(nodes_grn), '1') \
                     if (timestep) in signal_range else globalState_extended[:]
                 # check state of signal
                 signal_state = globalState_extended[len(nodes_grn):len(nodes_grn)+1]
@@ -168,9 +179,8 @@ for energy in energy_levels:
     for globalState_0 in ics:
         # # integer conversion
         globalState_0_int = int(globalState_0, 2)
-        # globalState_0 = rk.get_bin(globalStateInt_0, len(nodes_grn))
         df_sub_raw1 = df_raw_data[df_raw_data.initial_condition ==
-                                  globalState_0_int].reset_index(drop=True)  # .astype(float)
+                                  globalState_0_int].reset_index(drop=True)
 
         # # initiate dataframes for mean, std & cv
         df_mean = pd.DataFrame(index=[], columns=df_stats_head)
@@ -211,9 +221,7 @@ for energy in energy_levels:
         df_cv_filename = 'timeseries-%s-energy=%.0f-cv' % (globalState_0, float(energy)*100)
         rk.export_df(df_cv_filename, dir_out, args.motif, df_cv)
 
-# # Produce figure(s)
 print('Producing figures.')
-
 # # Loop through energy steps and produce figures
 for energy in energy_levels:
     # # loop through 0 to totalGlobalStates-1 in chronological/random order
@@ -228,15 +236,12 @@ for energy in energy_levels:
             dir_out, args.motif, globalState_0, float(energy)*100)
         df_std = pd.read_csv(df_std_filename)
 
-        """Plot figures"""
+        # # Plot figures
         fig_timeSteps = total_time
-
-        # # Plot figure of time-evolution subplots
         fig_timeEvolution = rk.time_evolution_fig(
             globalState_0, nodes_grn, len(nodes_grn), fig_timeSteps,
             df_mean, df_std)  # , df_binary_count)
-
-        # # Save time-evolution figure
+        # Save time-evolution figure
         fig_timeEvolutionFilename = "%s/%s-timeOutput-%s-energy=%.0f.pdf" % (
             dir_out, args.motif, globalState_0, float(energy)*100)
         fig_timeEvolution.savefig(fig_timeEvolutionFilename, format='pdf',

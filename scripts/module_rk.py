@@ -2,39 +2,38 @@
 Self-defined functions for numerical simulation of Boolean network model
 """
 
-# # Import modules to use
+# # Import modules
 import numpy as np
 import pandas as pd
 import random as rn
 import sys
 import os
-import graphviz
-from graphviz import Digraph
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import math
 from scipy.cluster.hierarchy import linkage
 from scipy.cluster.hierarchy import dendrogram
 from scipy.cluster import hierarchy
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
 
 
-"""
-Functions for preamble work
-"""
-
-
-def regulation_data(input_dir, motifName):
+def pathOut(file):
     """
-    motifName
-        Name of architecture being considered.
-    input_dir
-        Directory location containing csv files of GRN information.
+    Path to directory locations (input & output)
+    """
+    path_scripts = os.path.dirname(os.path.abspath(file))  # Directory for scripts
+    path_input = '%s/input-data' % os.path.dirname(path_scripts)  # Input data directory
+    path_out = os.path.dirname(path_scripts)  # Output location
+    return path_input, path_out
 
-    Read in gene regulatory network data from csv file
-    Output data in dataframes
+
+def unique_nodes(input_dir, motifName):
+    """
+    Signal regulation and unique components in architecture
     """
 
-    """Import regulatory interaction data"""
+    # # Import regulatory interaction data
     node_node_file = '%s/%s-regulation-nodes.csv' % (input_dir, motifName)
     node_node_data = pd.read_csv(node_node_file, header=0)
     node_edge_file = '%s/%s-regulation-edges.csv' % (input_dir, motifName)
@@ -42,32 +41,25 @@ def regulation_data(input_dir, motifName):
     # print(node_node_data)
     # print(node_edge_data)
 
-    return node_node_data, node_edge_data
-
-
-def unique_nodes(node_node_data, node_edge_data):
-    """Node-node regulation dataframe column headers list"""
+    # # Node-node regulation dataframe column headers list
     col_head_nodes = node_node_data.columns.values.tolist()
     index_start_nodes = col_head_nodes.index('start node')
     index_end_nodes = col_head_nodes.index('end node')
     index_regulation_nodes = col_head_nodes.index('regulation')
 
-    """Node-edge regulation dataframe column headers list"""
+    # # Node-edge regulation dataframe column headers list
     col_head_edges = node_edge_data.columns.values.tolist()
     index_regulator_edges = col_head_edges.index('regulator')
     index_start_edges = col_head_edges.index('target edge start')
     index_end_edges = col_head_edges.index('target edge end')
 
-    """Node-edge check"""
+    # # Node-edge check
     signal_node_edge = node_edge_data[node_edge_data.iloc[:, index_regulator_edges]
                                       == 'signal'].reset_index(drop=True)
     if len(node_edge_data) != len(signal_node_edge):
         sys.exit("Error: Non-signal node-edge regulation detected.")
 
-    """
-    Network original and ghost nodes
-    """
-    # # list of unique start & end nodes
+    # # Network original and ghost nodes
     start_unique_nodes = node_node_data[col_head_nodes[index_start_nodes]].unique()
     end_unique_nodes = node_node_data[col_head_nodes[index_end_nodes]].unique()
     start_unique_edges = node_edge_data[col_head_edges[index_start_edges]].unique()
@@ -98,20 +90,37 @@ def node_groups(nodes_unique):
     """
     Separate list into separte lists for original networks nodes, external signals & ghost nodes
     """
+    # total
+    nodes_total = len(nodes_unique)
+    # ghost nodes
     nodes_ghost = [ss for ss in nodes_unique if "ghost" in ss]
     nodes_ghost.sort()
+    number_ghost = len(nodes_ghost)
+    # signal node
     nodes_signal = [ss for ss in nodes_unique if "signal" in ss]
+    number_signal = len(nodes_signal)
+    # original grn nodes
     nodes_grn = [ss for ss in nodes_unique if ((not 'signal' in ss) and (
         not 'ghost' in ss) and (not 'constitutive' in ss))]
+    number_grn = len(nodes_grn)
     # print(nodes_ghost)
     # print(nodes_signal)
     # print(nodes_grn)
 
-    return nodes_grn, nodes_ghost, nodes_signal
+    # #Checkpoint: check calculated numbers of nodes are equivalent
+    numberNodesCheck = nodes_total - number_ghost - number_signal
+    if number_grn != numberNodesCheck:
+        sys.exit("Error: Total nodes and sum of node sets do not match.")
+    # print([number_grn, numberNodesCheck])
+
+    return nodes_grn, nodes_ghost, nodes_signal, nodes_total, number_ghost, number_signal, number_grn
 
 
 def signal_targets_unique(signal_node_edge):
-    """Filter unique signal edge regulatory interactions"""
+    """
+    Filter unique signal edge regulatory interactions
+    """
+
     signal_node_edge_unique = signal_node_edge.drop_duplicates(
         ['target edge start', 'target edge end']).reset_index(drop=True)
     # print(signal_regulation_node_edge)
@@ -121,33 +130,11 @@ def signal_targets_unique(signal_node_edge):
     return signal_node_edge_targets
 
 
-def node_total(nodes_grn, nodes_ghost, nodes_signal, nodes_unique):
-    # # calc number of ghost nodes
-    number_ghost = len(nodes_ghost)
-    # # calc number of original motif nodes
-    number_grn = len(nodes_grn)
-    # # calc number of signals in motif
-    number_signal = len(nodes_signal)
-    # # calc TOTAL number of motif nodes
-    nodes_total = len(nodes_unique)
-    # print(nodes_total)
-
-    """Checkpoint: check calculated numbers of nodes are equivalent"""
-    numberNodesCheck = nodes_total - number_ghost - number_signal
-    if number_grn != numberNodesCheck:
-        sys.exit("Error: Total nodes and sum of node sets do not match.")
-    # print([number_grn, numberNodesCheck])
-
-    return number_grn, number_ghost, number_signal
-
-
 def node_labels(nodes_grn, nodes_signal, nodes_ghost):
     """
-    Give unique network nodes a numerical label
-    Produce dataframe containing the order network components are displayed in all global states
-    and their respective node labels.
-    Create list from df of node order
+    Node order for global states and assigned numeric labels
     """
+
     # # create empty dataframe for node labels
     df_nodeLabels = pd.DataFrame(index=[], columns=['nodeName', 'nodeLabel'])
 
@@ -178,66 +165,48 @@ def node_labels(nodes_grn, nodes_signal, nodes_ghost):
         # print('v2 = %s' % str(v2))
 
     nodeOrder_list = df_nodeLabels['nodeName'].tolist()
-
     return nodeOrder_list, df_nodeLabels, signal_labels
 
 
 def summary_file(path_out, motifName, nodes_total, number_grn, nodes_grn, number_ghost,
-                 nodes_ghost, number_signal, nodes_signal, totalGlobalStates, nodeOrder_list, ics,
+                 nodes_ghost, number_signal, nodes_signal, totalGlobalStates, ics,
                  interaction_matrix, signal_node_edge, df_nodeLabels):
     """
-    Summary file of motif
+    Summary file of motif features
     """
+
     # # create/open summary file
-    summary_filename = "%s/summary.txt" % (path_out)
+    summary_filename = "%s/network-summary.txt" % (path_out)
     summary = open(summary_filename, "a+")
     summary.truncate(0)
 
     # # write info in text file
-    summary.write("Motif: % s.\n\nTotal nodes = %s.\n\n" % (motifName, nodes_total))
+    summary.write("Motif: %s.\n\nTotal nodes = %s.\n\n" % (motifName, nodes_total))
     summary.write("Number of GRN nodes = %s.\nGRN nodes = %s.\n\nNumber of ghost nodes = %s.\nGhost nodes = %s.\n\n"
                   % (number_grn, nodes_grn, number_ghost, nodes_ghost))
-    summary.write('Number of signal nodes = %s.\nSignal nodes = %s.\n\nTotal Global System States = %s.\n\nNode order: %s.\n' %
-                  (number_signal, nodes_signal, totalGlobalStates, nodeOrder_list))
-    summary.write('Node labels: %s.\n\n' % str(df_nodeLabels['nodeLabel'].tolist()))
+    summary.write('Number of signal nodes = %s.\nSignal nodes = %s.\n\nTotal Global System States = %s.\n\n' %
+                  (number_signal, nodes_signal, totalGlobalStates))
+    summary.write('Node order and assigned labels: \n%s\n\n' % str(df_nodeLabels))
     summary.write('Initial conditions: %s.\n\n' % ics)
     summary.write('Initial Interaction Matrix: \n%s\n\n' % str(interaction_matrix))
     summary.write('Signal Interactions: \n%s\n\n' % str(signal_node_edge))
+
     # # close file
     summary.close()
 
 
-"""
-General Functions
-"""
-
-
-def create_dir(signal_start, signal_end, motifName, signal_length, path_out):
+def create_dir(signal_status, signal_start, signal_range, motifName, path_out):
     """
-    Function generates directories for simulation outputs to go.
-    If directory already exists, function skips the production of the directory.
-
-    Parameters
-    ----------
-    signal_start
-        start time-step for signal/stressor
-    signal_end
-        end time-step for signal/stressor
-    motifName
-        network motif being considered
-    signal_length
-        total length of signal introduction
-
-    Return
-    ----------
-    New directories for script outputs.
+    Directories for simulation outputs
     """
+
     motif_dir = '%s/outputs/%s' % (path_out, motifName)
 
-    if (signal_start == 0) and (signal_end == 0):
-        out_dir = '%s/timeseries-signal-0' % (motif_dir)
+    if signal_status == False:
+        out_dir = '%s/timeseries-no-signal' % (motif_dir)
     else:
-        out_dir = '%s/timeseries-signal-%d' % (motif_dir, signal_length)
+        out_dir = '%s/timeseries-signalStart-%.0f-signalEnd-%.0f' % \
+            (motif_dir, signal_start, signal_range[-1])
 
     create_directories = [motif_dir, out_dir]
     for dirName in create_directories:
@@ -250,22 +219,9 @@ def create_dir(signal_start, signal_end, motifName, signal_length, path_out):
 
 def create_hm_dir(signal_state, motifName, path_out):
     """
-    Function generates directories for simulation outputs to go.
-    If directory already exists, function skips the production of the directory.
-
-    Parameters
-    ----------
-    signal_state
-        active/inactive stress
-    motifName
-        network motif being considered
-    path_out
-        path of where new directories are to be created
-
-    Return
-    ----------
-    New directories for simulation outputs.
+    Directories for simulation outputs
     """
+
     motif_dir = '%s/outputs/%s' % (path_out, motifName)
     out_dir = '%s/hms-signal-%s' % (motif_dir, signal_state)
 
@@ -277,62 +233,96 @@ def create_hm_dir(signal_state, motifName, path_out):
     return out_dir
 
 
-def signal_range(signal_start, signal_end):  # stress signal range
+def signal_range(signal_active, signal_start, signal_length):  # stress time range
     """
-    Checkpoint: check start point <= end point
+    List of time-steps for active signal
     """
-    if signal_end < signal_start:
-        sys.exit("Error in 'Signal Range'. End point is before start point.")
 
-    if (signal_end < 0) or (signal_start < 0):
-        sys.exit("Error in 'Signal Range'. At least one time point is before t=0.")
+    if signal_active == True:
+        if signal_start < 0:
+            sys.exit("Error in 'Signal Range'. Start point is before time-step 1.")
+        if signal_length < 0:
+            sys.exit("Error in 'Signal Length'. Value presented is negative.")
 
-    if (signal_start == 0) and (signal_end == 0):
+        signal_range = np.linspace(signal_start, signal_start +
+                                   signal_length, signal_length, endpoint=False)
+
+    elif signal_active == False:
         signal_range = np.array([])
-    else:
-        signal_range = np.linspace(signal_start, signal_end, (signal_end+1-signal_start))
 
-    return signal_range, signal_start, signal_end
+    else:
+        sys.exit("Error: Unknown 'signal' value.")
+
+    return signal_range
 
 
 def export_df(fileName, outputDirectory, motif, dataframe):  # export dataframe
     """
-    Export dataframe to csv file format.
-
-    Parameters
-    ----------
-    fileName
-        Filename for csv file.
-    outputDirectory
-        Location to save dataframe to.
-    motif
-        Current network being analysed.
-    dataframe
-        Data to be exported.
+    Export dataframe to csv file format
     """
+
     complete_filename = "%s/%s-%s.csv" % (outputDirectory, motif, fileName)
     export_df = dataframe.to_csv(complete_filename, index=False, header=True)
 
     return complete_filename
 
 
-def energy_prob_function(n):  # determine prob threshold using energy level
+def energy_prob_function(n):
+    """
+    determine prob threshold using energy level
+    """
     return 1 * n  # (1+np.exp(8-16*n)) ** (-1)
+
+
+def linear_energy_time_function(direction, energy_min, energy_max, timestep, totalTime):
+    """
+    Linearly increase or decrease energy at specified time-step
+    """
+
+    if timestep < 0:
+        sys.exit("Error: Current timestep is before t=0.")
+    if timestep > totalTime:
+        sys.exit("Error: Current timestep is out of defined time range.")
+
+    if direction == 'increase':
+        energy = energy_min+(timestep*((energy_max-energy_min)/(totalTime-1)))
+    elif direction == 'decrease':
+        energy = energy_max - (timestep*((energy_max-energy_min)/(totalTime-1)))
+    return energy
+
+
+def discrete_energy_time_function(direction, matrix_low, matrix_high, low_energy, high_energy, switchpoint, timestep):
+    """
+    Increase or decrease energy at specified time-step
+    """
+
+    if timestep < 0:
+        sys.exit("Error: Current timestep is before t=0.")
+    # if timestep == switchpoint:
+    #     print('Switchpoint [timestep = %.0f]' % timestep)
+
+    if direction == 'increase':
+        if timestep < switchpoint:
+            energy = low_energy
+            sub_matrix = matrix_low
+        else:
+            energy = high_energy
+            sub_matrix = matrix_high
+    elif direction == 'decrease':
+        if timestep < switchpoint:
+            energy = high_energy
+            sub_matrix = matrix_high
+        else:
+            energy = low_energy
+            sub_matrix = matrix_low
+    else:
+        sys.exit("Error: Direction of energy switch is unknown.")
+    return energy, sub_matrix
 
 
 def get_bin(x, n):  # convert integer to binary format
     """
-    Get the binary representation of x.
-
-    Parameters
-    ----------
-    x : int - Number to convert to binary.
-    n : int - Minimum number of digits. If x needs less digits in binary, the rest
-        is filled with zeros.
-
-    Returns
-    -------
-    str
+    Get the binary representation of x
     """
     return format(x, 'b').zfill(n)
 
@@ -340,22 +330,8 @@ def get_bin(x, n):  # convert integer to binary format
 def extend_state(globalState, extension_length, extension_state):  # append global state w. additional states
     """
     Create binary string to add to end of global state.
-
-    Parameters
-    ----------
-    globalState
-        Input global state to be extended.
-
-    extension_length
-        Length of nodes to append.
-
-    extension_state
-        State of nodes being appended to global state.
-
-    Return
-    ----------
-    Binary string of length(globalState+extension_length).
     """
+
     extension_list = ['%s' % extension_state for i in range(extension_length)]
     # print(extension_list)
     globalState_extension = ''.join(extension_list)
@@ -365,38 +341,35 @@ def extend_state(globalState, extension_length, extension_state):  # append glob
     return globalState_extended
 
 
-"""
-Numerical simulation functions
-"""
-
-
 def interaction_matrix(regulationDataDirectory, motifName, total_nodes, nodeOrder_list):
-    """Zero array"""
+    """
+    Produce interaction matrix from data
+    """
+
+    # #Zero array
     array_interactions = np.zeros(shape=(total_nodes, total_nodes), dtype=np.float64)
     # print(array_interactions)
 
-    """Import Data"""
+    # # Import Data
     df_file = '%s/%s-regulation-nodes.csv' % (regulationDataDirectory, motifName)
     df_data = pd.read_csv(df_file, header=0)
 
-    """Populate the zero array using regulatory network data"""
-    # # calc number of rows in csv file (excluding headers)
-    df_shape = df_data.shape
-    df_totalRows = df_shape[0]
-
-    for csvRow in range(df_totalRows):
-        node_start = nodeOrder_list.index(df_data.iloc[csvRow, 0])
-        node_end = nodeOrder_list.index(df_data.iloc[csvRow, 1])
-        node_interaction = df_data.iloc[csvRow, 2]
+    # # Populate the zero array using regulatory network data
+    for index, row in df_data.iterrows():
+        node_start = nodeOrder_list.index(row[0])
+        node_end = nodeOrder_list.index(row[1])
+        node_interaction = row[2]
         # print([node_start, node_end, node_interaction])
-
         array_interactions[node_end][node_start] = node_interaction
-    # # print('Interaction matrix is: %s' % interaction_matrix)
-
+    # print('Interaction matrix is: %s' % interaction_matrix)
     return array_interactions
 
 
 def import_ICs(ics_data_dir, motifName, nodes_grn):
+    """
+    ICs for simulations
+    """
+
     ics_filename = '%s/%s-ICs.csv' % (ics_data_dir, motifName)
     ics_data = pd.read_csv(ics_filename,  # relative python path to subdirectory
                            # Parse the count "regulation" as an integer
@@ -418,19 +391,21 @@ def import_ICs(ics_data_dir, motifName, nodes_grn):
                                        index_names=False).split('\n')
         ics = [''.join(r.split()) for r in df_string]
 
-    # # Shuffle ICs order
+    # # Randomly shuffle ICs order
     # ics = rn.sample(ics[:], len(ics))
     # print(ics)
-
     return ics
 
 
-def sub_matrix(interactionMatrix, probThreshold):
-    # , edge_regulation_data):
+def submatrix(interactionMatrix, probThreshold):
+    """
+    Submatrix of interactions
+    """
+
     sub_matrix = interactionMatrix.copy()
     matrix_indices = [i for i in range(interactionMatrix.shape[0])]
 
-    """Produce sub-matrix of node-node regulation"""
+    # # Produce sub-matrix of node-node regulation
     for matrixRow in matrix_indices:
         for matrixCol in matrix_indices:
             # # (pseudo)random value from a uniform distribution
@@ -438,17 +413,23 @@ def sub_matrix(interactionMatrix, probThreshold):
             # # set element value within sub-matrix
             sub_matrix[matrixRow][matrixCol] = sub_matrix[matrixRow][
                 matrixCol] if randNum <= probThreshold else 0
+    return sub_matrix
 
-    return sub_matrix  # , sub_df_edge_regulation
 
+def add_row(energy_sim, globalState_0_int, time_step, signal_state, globalState_1):
+    """
+    add array row data
+    """
 
-def add_row(energy_sim, globalState_0_int, time_step, signal_state, globalState_1):  # array row data
     row = [energy_sim+1, globalState_0_int, time_step, signal_state]
     row.extend(list(map(int, globalState_1)))
     return row
 
 
 def node_state_change(globalState_0, index_to_change, new_value):
+    """
+    flip state of node
+    """
     globalState_0_list = list(globalState_0)
     globalState_0_list[index_to_change] = new_value
     globalState_0_new = ''.join(globalState_0_list)
@@ -456,7 +437,9 @@ def node_state_change(globalState_0, index_to_change, new_value):
 
 
 def signal_node_edge_regulation_matrix(interaction_matrix, node_edge_data, signal_node_edge_unique, nodeOrder_list, globalState):
-
+    """
+    Modulate interactions based on signal state
+    """
     if len(signal_node_edge_unique.index) != 0:
         sub_interactionMatrix = interaction_matrix.copy()
 
@@ -500,6 +483,10 @@ def signal_node_edge_regulation_matrix(interaction_matrix, node_edge_data, signa
 
 
 def update_state(state_0, number_grn, number_signal, matrix, total_nodes, N):
+    """
+    Boolean modelling asynchronous updating of nodes
+    """
+
     # # convert to list
     state_0_list = list(state_0)
     for randomNode in range(0, N):
@@ -531,222 +518,59 @@ def update_state(state_0, number_grn, number_signal, matrix, total_nodes, N):
 
 def hm_data(transitonsFile, totalGlobalStates, numberNodes):
     """
-    Create a matrix to use for heatmaps and dendrograms.
-
-    Parameters
-    ----------
-    transitonsFile
-        dataframe of global state transitions.
-    totalGlobalStates
-        number of global states in state space.
-    numberNodes
-        number of nodes in network motif (excluding ghost nodes).
+    Produce a matrix to use for heatmaps and dendrograms.
     """
     # # data import
     df = pd.read_csv(transitonsFile)
     dfRows = df.shape[0]
 
-    """Empty array"""
+    # # Empty array
     dataFile = [[0] * totalGlobalStates for rows in range(totalGlobalStates)]
     # print('\nBlank matrix is: ' + str(heatmapData))
 
-    """Fill array with transition data from dataframe"""
+    # # Fill array with transition data from dataframe
     for hm_data_row in range(dfRows):
         hm_start_state = int(df.iloc[hm_data_row]['state(t)'])
         hm_end_state = int(df.iloc[hm_data_row]['state(t+1)'])
         hm_probability = df.iloc[hm_data_row]['count']
         dataFile[hm_start_state][hm_end_state] = hm_probability
 
-    """Add column & index labels"""
+    # # Add column & index labels
     globalState_names = [get_bin(_, numberNodes) for _ in range(totalGlobalStates)]
     hm_data = pd.DataFrame(dataFile, index=globalState_names, columns=globalState_names)
     # print(hm_data)
-
     return hm_data
 
 
 """
 Figure functions
-(1) State space diagram
-(2) Heatmap plots of transition matrices
-(3) Time-evolution figures
+(1) Heatmap plots of transition matrices
+(2) Time-evolution figures
 """
-# ------------------------------------------------------------------------
-"""State space diagram functions"""
-# ------------------------------------------------------------------------
-
-
-# initialise state space diagram and modify appearance
-def stateSpaceDiagram_attributes(DOT_comment):
-    # engines: 'dot' 'circo' 'fdp' 'neato' 'twopi'
-    stateSpaceDiagram = Digraph(comment=DOT_comment, engine='dot')
-    # # Set attributes of nodes, edges & graph
-    stateSpaceDiagram.node_attr.update(shape='doublecircle', color='#D983F9',
-                                       style='filled', penwidth='2', fontsize='30', margin='0.05',
-                                       width='1.2', fixedsize='true')
-    stateSpaceDiagram.edge_attr.update(arrowhead='normal', arrowsize='0.15',
-                                       fontsize='22', decorate='true')
-    stateSpaceDiagram.graph_attr.update(ratio="0.7072", splines='spline',
-                                        margin='0.01', nodesep='0.4')
-    # https://www.graphviz.org/doc/info/attrs.html#d:concentrate
-    return stateSpaceDiagram
-
-    """
-    Add edges to graph (transitions)
-    """
-    for l in range(len(transitionMatrix)):
-        # # determine the system state pair for selected row
-        startState = 'node%d' % transitionMatrix[l][0]
-        nextState = 'node%d' % transitionMatrix[l][1]
-        # # add edge
-        stateSpaceDiagram.edge(startState, nextState, color='1 0 0', penwidth='8')
-
-
-# add nodes to state space diagram with label
-def stateSpaceDiagram_nodes(stateSpaceDiagram, totalGlobalStates, totalNodes):
-    """
-    Add nodes to graph with binary format as labels
-    NOTE: RK thinks this can be a 'one-liner' -- use lambda function/new defined function
-    """
-    for k in range(totalGlobalStates):
-        # # generating node names
-        nodeName = 'node%d' % k
-        # # generating binary labels
-        nodeLabel = get_bin(k, totalNodes)
-        # **{'width': str(0.5), 'height': str(0.5)}, fixedsize='True')
-        # # add nodes to graph
-        stateSpaceDiagram.node(nodeName, label=nodeLabel)
-
-
-def energyHueFunc(x):
-    """
-    Input a numeric value in [0, 1] (representing the energy level).
-    Return the hue of the corresponding edge.
-    """
-    return 0.7*(1-x)
-
-
-# add edges with labels and weighted edges weights
-def stateSpaceDiagram_edges(stateSpaceDiagram, df_filename, energyLevel):
-    """
-    Import data & determine column indices
-    """
-    df = pd.read_csv(df_filename,  # # relative python path to subdirectory
-                     # # Parse the count column as an integer
-                     dtype={"state(t)": int, "state(t+1)": int, "count": float},
-                     header=0,  # # Skip the first 1 rows of the file
-                     )
-    col_headers = df.columns.values.tolist()
-    index_start = col_headers.index("state(t)")
-    index_end = col_headers.index("state(t+1)")
-    index_prob = col_headers.index("count")
-
-    """Find shape of dataframe"""
-    df_shape = df.shape
-    numRows = df_shape[0]
-
-    """Add edges to graph (transitions). Edge weight == frequency of transitions"""
-    for q in range(numRows):
-        # # determine the system state pair for selected row
-        startState = 'node%d' % df.iloc[q, index_start]
-        nextState = 'node%d' % df.iloc[q, index_end]
-        # # frequency of transition
-        transition_prob = df.iloc[q, index_prob]
-        # # edge label
-        edge_lab = ' %s%%' % round(transition_prob*100, 3)
-        # # edge properties: width & colour
-        edgeWidth = (transition_prob*12) + 1.5
-        edgeHue = energyHueFunc(float(energyLevel))
-        # edgeSaturation = 0.7 * energy
-        hueSatValue = "%.4f 1 0.9" % (edgeHue)
-        # # add edge
-        stateSpaceDiagram.edge(startState, nextState, color=hueSatValue,
-                               penwidth=str(edgeWidth), label=edge_lab)
-
-# create .gv file and produce state space diagram figure
-
-
-def save_stateSpaceDiagram(stateSpaceDiagram, fileName):
-    """
-    Save DOT file
-    Produce state space diagram using DOT file data
-    """
-    stateSpaceDiagram.save(filename=fileName)  # # should save as .gv
-    graphviz.render('dot', 'pdf', fileName)  # # pdf figure version
-
-
-# ------------------------------------------------------------------------
-"""Heatmap and clustering functions"""
-# ------------------------------------------------------------------------
 
 
 def dendrogram_and_heatmap(figure, data, numberNetworkNodes, number_sims, cbarlabel="", cbar_kw={}, **kwargs):
-    # https://matplotlib.org/3.1.1/gallery/images_contours_and_fields/image_annotated_heatmap.html
-    # alternate: https://seaborn.pydata.org/generated/seaborn.heatmap.html
     """
-    Create a heatmap and dendrogram from a numpy array and two lists of labels.
-
-    Parameters
-    ----------
-    figure
-        Figure to add axis to.
-    data
-        A 2D numpy array of shape(N, M).
-    numberNetworkNodes
-        Number of components in network.
-    row_labels
-        A list or array of length N with the labels for the rows.
-    col_labels
-        A list or array of length M with the labels for the columns.
-    ax
-        A `matplotlib.axes.Axes` instance to which the heatmap is plotted.  If
-        not provided, use current axes or create a new one.  Optional.
-    cbar_kw
-        A dictionary with arguments to `matplotlib.Figure.colorbar`.  Optional.
-    cbarlabel
-        The label for the colorbar.  Optional.
-    **kwargs
-        All other arguments are forwarded to `imshow`.
+    Heatmap figure with dendrogram
     """
-
-    """
-    Plot dendrogram sub-figure
-    Clustering: https: // stackabuse.com/hierarchical-clustering-with-python-and-scikit-learn/
-    """
-    # # add dendrogram axis - values from the left to right are left, bottom, width, and height
-    # if not axd:
+    # # dendrogram
+    # add dendrogram axis - values from the left to right are left, bottom, width, and height
     dendrogramAxisPositionLeft = -0.02 - (0.0145*numberNetworkNodes)
     axd = figure.add_axes([dendrogramAxisPositionLeft, 0.33, 0.06, 0.4])
-
-    # # make dendrogram multicoloured (1)
+    # make dendrogram multicoloured (1)
     hierarchy.set_link_color_palette(['k', 'g', 'r', 'c', 'm', 'y'])
-
-    # # calculate row clusters
+    # calculate row clusters
     row_clusters = linkage(data.values, method='complete', metric='euclidean')
-    # dist_max = row_clusters.max(axis=0)[2]
-    # # output row clustering to dataframe to visualise
-    # clusterDataframe = pd.DataFrame(row_clusters,
-    #                                 columns=['clust index 1', 'clust index 2',
-    #                                          'dist.', 'sample_count'],
-    #                                 index=['merger %d (cluster %d)' % (i+1, i+totalGlobalStates) for i in range(row_clusters.shape[0])])
-    # print(row_clusters)
-
-    # # dendrogram / tree
+    # dendrogram / tree
     with plt.rc_context({'lines.linewidth': 0.3}):
         row_dendr = dendrogram(row_clusters, orientation='left', ax=axd, color_threshold=np.inf)
-
-    # # row clustered data
+    # row clustered data
     data_rowclust = data.iloc[row_dendr['leaves'][::-1]]
-
-    # # dendrogram axis attributes
-    # axd.set_title('Hierarchical Clustering')
+    # dendrogram axis attributes
     axd.set_xticks([np.sqrt(2), 0])
     axd.set_xlabel('Euclidean distance \nbetween destination \nprobability sets', size=4.5)
     xticklabels = [r'$\sqrt{2}$', 0]
     axd.set_xticklabels(xticklabels, size=7)
-    # axd.set_yticks([])
-    # axd.set_yticks(axesTicksPositions)  # , minor=True)
-    # ([''] + list(df2.columns))
     axd.set_yticklabels(list(data_rowclust.index)[::-1], size=7)
     axd.tick_params(axis='y', which='both', pad=-2)
     # axd.set_ylabel('Global state, time t', size=18)
@@ -754,15 +578,11 @@ def dendrogram_and_heatmap(figure, data, numberNetworkNodes, number_sims, cbarla
     # plt.xlim(dist_max, 0)  # ylim(left, right)
     plt.xlim(np.sqrt(2), 0)
     plt.grid(b=None, which='major', axis='x', ls='--', alpha=0.7)
-
-    # # remove axes spines from dendrogram
+    # remove axes spines from dendrogram
     for ax_spines in axd.spines.values():
         ax_spines.set_visible(False)
 
-    """
-    Plot heatmap sub-figure
-    """
-
+    # # Plot heatmap sub-figure
     mpl.rcParams['axes.linewidth'] = 0.4
     axm = figure.add_axes([0.17, 0.1, 0.3, 0.6])  # x-pos, y-pos, width, height
     cmap = plt.cm.viridis
@@ -772,25 +592,18 @@ def dendrogram_and_heatmap(figure, data, numberNetworkNodes, number_sims, cbarla
     data_thresh_scientific = "{:.1e}".format(data_thresh)
     # print(data_thresh)
     data[data < data_thresh] = np.nan
-    # cmap.set_under(color='white')
-    # # Plot data in heatmap
+    # Plot data in heatmap
     im = axm.imshow(data, cmap=cmap, vmin=0, vmax=1, **kwargs)
-
-    # # # Create colorbar for heatmap & change colour bar attributes
-    # cbar = axm.figure.colorbar(im, ax=axm, **cbar_kw)
-    # cbar.minorticks_on()
-    # cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", size=12)
-
-    # # axis ticks
+    # axis ticks
     axesLabelLength = len(list(data.columns))
     axesTicksPositions = np.arange(0, axesLabelLength, 1)
     axm.set_xticks(axesTicksPositions)
     axm.set_yticks(axesTicksPositions)  # , minor=True)
-    # # ... & label them with the respective list entries.
+
     axm.set_xticklabels(list(data.columns), rotation=90, size=6.8)
     axm.tick_params(axis="both", width=0.4, length=2, pad=1)
     axm.set_yticklabels(list(data.index), size=6.8)  # ([''] + list(df2.columns))
-    # # move x-ticks and labels to the top of heatmap
+    # move x-ticks and labels to the top of heatmap
     axm.xaxis.set_ticks_position('top')
     # ax.minorticks_on()
 
@@ -803,9 +616,7 @@ def dendrogram_and_heatmap(figure, data, numberNetworkNodes, number_sims, cbarla
     axm.xaxis.set_label_position('top')
     axm.set_ylabel(r'Global state, $t = \tau$', labelpad=2, size=7)
 
-    """
-    Plot separate manual colour bar
-    """
+    # # Plot separate manual colour bar
     ax_cbar = figure.add_axes([0.5, 0.27, 0.015, 0.4])
     cbar_cmap = plt.cm.viridis
     norm = mpl.colors.Normalize(vmin=0, vmax=1)
@@ -828,33 +639,28 @@ def dendrogram_and_heatmap(figure, data, numberNetworkNodes, number_sims, cbarla
     ax_zero_cbar_label.axes.get_xaxis().set_visible(False)
     ax_zero_cbar_label.axes.get_yaxis().set_visible(False)
     plt.text(0, 0, '$%s$' % data_thresh_scientific, fontsize=6)
+
     # # remove axes spines
     for ax_spines in ax_zero_cbar_label.spines.values():
         ax_spines.set_visible(False)
 
-    # return im, cbar
-
-
-# ------------------------------------------------------------------------
-"""Time evolution functions"""
-# ------------------------------------------------------------------------
-
 
 def time_evolution_subplot(numberNetworkNodes):
+    """
+    Subplot layout (mxn)
+    """
     x = math.sqrt(numberNetworkNodes)
     subplot_rows = math.ceil(x)
     subplot_cols = math.ceil(numberNetworkNodes/subplot_rows)
-
     return subplot_rows, subplot_cols
 
 
 def time_evolution_fig(networkGlobalState_0, uniqueNodes, numberNodes, fig_timeSteps, df, df_error):
     """
-    Alternative visualization modules:
-    Visualization with Seaborn: https://jakevdp.github.io/PythonDataScienceHandbook/04.14-visualization-with-seaborn.html
+    Time evolution figure
     """
-    fig, axs = plt.subplots(2, 2, figsize=(5, 3.5), sharex='col', sharey='row',
-                            gridspec_kw={'hspace': 0.19, 'wspace': 0.05})
+    fig, axs = plt.subplots(2, 2, figsize=(3, 2.5), sharex='col', sharey='row',
+                            gridspec_kw={'hspace': 0.19, 'wspace': 0.08})
     # sharex='col',sharey = 'row', gridspec_kw = {'hspace': 0.2, 'wspace': 0.2}
     # constrained_layout=True
     ax = axs.ravel()
@@ -870,39 +676,39 @@ def time_evolution_fig(networkGlobalState_0, uniqueNodes, numberNodes, fig_timeS
     x_label_subplots = [((subplot_rows-1)*subplot_cols)+n for n in range(0, subplot_cols)]
     y_label_subplots = [(n*subplot_cols) for n in range(0, subplot_rows)]
 
+    df_stress_sub = df[df.signal_state != 0]
+    if not df_stress_sub.empty:
+        stress_start = df_stress_sub.index[0]
+    else:
+        stress_start = 1
+
     for i in range(0, numberNodes):
-        ax[i].set_title('%s' % fig_subplotTitles[i], fontsize=11, style='italic', pad=3)
+        ax[i].fill_between(np.linspace(0, stress_start-1, stress_start-1), -0.1, 1.1,
+                           facecolor='pink', alpha=0.5, zorder=0)
+
+        ax[i].set_title('%s' % fig_subplotTitles[i], fontsize=8, style='italic', pad=1.5)
 
         ax[i].plot(df.iloc[:, 0], df.iloc[:, i+2], '-', color='#0023D1',
-                   linewidth=1.5, zorder=0)  # ax[i].step / ax[i].plot
+                   linewidth=1, zorder=2)  # ax[i].step / ax[i].plot
+        # ax[i].step(df.iloc[:, 0], df.iloc[:, i+2], '-', color='#0023D1',
+        #            linewidth=1.5, zorder=0, where='post')
         ax[i].fill_between(df.iloc[:, 0], df.iloc[:, i+2] - df_error.iloc[:, i+2],
                            df.iloc[:, i+2] + df_error.iloc[:, i+2],
-                           color='#409AFF', alpha=0.25)
+                           color='#409AFF', alpha=0.25, linewidth=0.1, zorder=1)
+        ax[i].set_xlim(-0.5, fig_timeSteps+0.5)
+        ax[i].set_ylim(-0.02, 1.02)
+        ax[i].xaxis.set_major_locator(MultipleLocator(10))
+        ax[i].xaxis.set_major_formatter(FormatStrFormatter('%d'))
 
-        ax[i].set_xlim(-0.75, fig_timeSteps-0.25)
-        ax[i].set_ylim(-0.05, 1.05)
-
-        xaxis_tick_num = ((fig_timeSteps-1)/5)+1
-        ax[i].set_xticks(np.linspace(0, fig_timeSteps-1, int(xaxis_tick_num)))
+        ax[i].xaxis.set_minor_locator(MultipleLocator(5))
         ax[i].set_yticks(np.linspace(0, 1, 5))  # , minor=True)
-        ax[i].tick_params(axis="both", labelsize=10, length=2, pad=1)
+        ax[i].tick_params(axis="both", labelsize=7, length=1.5, pad=1)
 
         if i in y_label_subplots:
-            ax[i].set_ylabel("Mean Activation", size=10, labelpad=2)
+            ax[i].set_ylabel("Mean Activation", size=8, labelpad=2)
 
         if i in x_label_subplots:
-            ax[i].set_xlabel("Time-step", size=10, labelpad=2)
+            ax[i].set_xlabel("Time-step", size=8, labelpad=2)
 
-        ax[i].grid(True, linestyle='--', linewidth='0.1')
-
-        marker_scaling = 1.6
-        for j in range(df.shape[0]):
-            # # markers for mean activation
-            markersize_0 = (1-df.iloc[j, i+2])
-            ax[i].plot(df.iloc[j, 0], 0, 'D', color='m', markersize=marker_scaling*markersize_0, zorder=1,
-                       fillstyle='full')  # , markeredgewidth=2,  markerfacecolor='m')
-            markersize_1 = df.iloc[j, i+2]
-            ax[i].plot(df.iloc[j, 0], 1, 'Dm', markersize=marker_scaling*markersize_1, zorder=1,
-                       fillstyle='full')  # ,markeredgewidth=2, fillstyle='full', markerfacecolor='m')
-
+        ax[i].grid(True, which='both', linestyle='--', linewidth='0.1')
     return fig
